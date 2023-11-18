@@ -87,4 +87,19 @@ def get_panel(signer: Signer, signer_token_account: TokenAccount, recipient: Tok
   )
 
   print(f"{amount} panel units transfered from {signer} to {recipient}")
+
+
+@instruction
+def init_token_account(signer: Signer, signer_token: TokenAccount, token_mint: TokenMint, recipient_token: Empty[TokenAccount], amount: u64):
+  # recipient_token = recipient_token.init(
+  #   payer = signer,
+  #   mint = token_mint,
+  #   authority = signer,
+  #   associated = True
+  # )
   
+  signer_token.transfer(
+    authority = signer,
+    to = recipient_token,
+    amount = amount
+  )

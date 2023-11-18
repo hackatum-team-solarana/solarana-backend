@@ -47,6 +47,25 @@ const keypairs = [
 ]
 
 
+const getTokenProgram = () => new web3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+
+const getATokenPK = () => new web3.PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
+
+function findAssociatedTokenAddress(
+    walletAddress: web3.PublicKey,
+    tokenMintAddress: web3.PublicKey
+): web3.PublicKey {
+    return web3.PublicKey.findProgramAddressSync(
+        [
+            walletAddress.toBuffer(),
+            getTokenProgram().toBuffer(),
+            tokenMintAddress.toBuffer(),
+        ],
+        getATokenPK()
+    )[0];
+}
+
+
 type InitDummyKeyParams = {
   publicKey: string,
   secretKey: string,
@@ -85,11 +104,6 @@ describe("Panel", async () => {
     );
     console.log("panelPk", panelPk.toString());
     
-    
-    const getTokenProgram = () => new web3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
-    
-    
-    const getATokenPK = () => new web3.PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
     
     
     const registerPanel = async () => {  
@@ -174,76 +188,133 @@ describe("Panel", async () => {
     // });
 
     
-    it("buy panel", async () => {
-      const signerATA = web3.PublicKey.findProgramAddressSync(
-        [
-          pg.wallet.publicKey.toBuffer(),
-          getTokenProgram().toBuffer(),
-          tokenMintPk.toBuffer(),
-        ],
-        getATokenPK()
-      )[0];
-      console.log("signer ATA", signerATA.toString())
+    // it("buy panel", async () => {
+    //   const signerATA = web3.PublicKey.findProgramAddressSync(
+    //     [
+    //       pg.wallet.publicKey.toBuffer(),
+    //       getTokenProgram().toBuffer(),
+    //       tokenMintPk.toBuffer(),
+    //     ],
+    //     getATokenPK()
+    //   )[0];
+    //   console.log("signer ATA", signerATA.toString())
 
-      const recipientATA = web3.PublicKey.findProgramAddressSync(
-        [
-          pg.wallet.publicKey.toBuffer(),
-          getTokenProgram().toBuffer(),
-          tokenMintPk.toBuffer(),
-        ],
-        getATokenPK()
-      )
-      console.log("recipient ATA", recipientATA.toString());
+    //   const recipientATA = web3.PublicKey.findProgramAddressSync(
+    //     [
+    //       pg.wallet.publicKey.toBuffer(),
+    //       getTokenProgram().toBuffer(),
+    //       tokenMintPk.toBuffer(),
+    //     ],
+    //     getATokenPK()
+    //   )
+    //   console.log("recipient ATA", recipientATA.toString());
 
 
-      const transaction = new web3.Transaction();
+    //   const transaction = new web3.Transaction();
 
-      console.log("tokenMint", tokenMintPk.toString());
+    //   console.log("tokenMint", tokenMintPk.toString());
 
-      const callInitTokenMint = await pg.program.methods
-        .initTokenMint()
+    //   const callInitTokenMint = await pg.program.methods
+    //     .initTokenMint()
+    //     .accounts({
+    //       newTokenMint: tokenMintPk,
+    //       signer: pg.wallet.publicKey,
+    //     })
+    //     .instruction()
+
+    //   console.log();
+    //   console.log("newRecipiet", recipientATA.toString());
+    //   console.log("tokenMi", tokenMintPk.toString());
+    //   console.log("owner", pg.wallet.publicKey.toString());
+
+    //   const callInitEmptyAccount = await pg.program.methods
+    //     .initEmptyAccount()
+    //     .accounts({
+    //       newRecipient: recipientATA,
+    //       tokenMint: tokenMintPk,
+    //       owner: pg.wallet.publicKey,
+    //       tokenProgram: getTokenProgram(),
+    //       associatedTokenProgram: getATokenPK(),
+    //       systemProgram: web3.SystemProgram.programId,
+    //       // rent: web3.SYSVAR_RENT_PUBKEY
+    //     })
+    //     .rpc();
+
+    //   const callGetPanel = await pg.program.methods
+    //     .getPanel(new BN(17))
+    //     .accounts({
+    //       signerTokenAccount: signerATA,
+    //       signer: pg.wallet.publicKey,
+    //       recipient: recipientATA,
+    //       tokenProgram: getTokenProgram()
+    //     })
+    //     .rpc();
+
+
+    //   /*transaction.add(callInitEmptyAccount, callGetPanel);
+    //   transaction.recentBlockhash = (
+    //     await pg.connection.getLatestBlockhash()
+    //   ).blockhash;
+    //   transaction.feePayer = pg.wallet.publicKey;
+    //   transaction.sign(pg.wallet.keypair);*/
+      
+    //   // Send transaction
+    //   //const signature = await pg.connection.sendRawTransaction(transaction.serialize(), {skipPreflight: true});
+    //   //console.log(signature)
+
+    //   const panelAccount = await pg.program.account.panel.fetch(panelPk);
+    //   console.log("Area per unit:", panelAccount.apu);
+    //   console.log("Power:", panelAccount.power);
+    //   console.log("Price per unit:", panelAccount.ppu);
+    //   console.log("Units:", panelAccount.units);
+    //   console.log("Age:", panelAccount.age);
+    // });
+
+
+    it("test", async () => {
+      const [tokenMintPk] = await web3.PublicKey.findProgramAddress(
+        [Buffer.from("token-mint"), pg.wallet.publicKey.toBuffer()],
+        pg.PROGRAM_ID
+      );
+      const signerTokenATA = findAssociatedTokenAddress(pg.wallet.publicKey, tokenMintPk);
+      const recipientTokenATA = findAssociatedTokenAddress(new web3.PublicKey("4PamNizuUHWWbyCUuyNQDxxmYA16RLx7zQrdGFXj9L4u"), tokenMintPk)
+      console.log("signertokenTAT", signerTokenATA.toString());
+
+      // const test = await pg.program.methods
+      //   .initTokenAccount()
+      //   .accounts({
+      //     associatedTokenProgram: getATokenPK(),
+      //     signer: pg.wallet.publicKey,
+      //     signerToken: signerTokenATA,
+      //     tokenMint: tokenMintPk,
+      //     tokenProgram: getTokenProgram(),
+      //   })
+      //   .rpc({
+      //     skipPreflight: true,
+      //   })
+
+      //   console.log(test);
+
+      
+
+      const transaction = await pg.program.methods
+        .initTokenAccount(new BN(1))
         .accounts({
-          newTokenMint: tokenMintPk,
           signer: pg.wallet.publicKey,
-        })
-        .instruction()
-
-      const callInitEmptyAccount = await pg.program.methods
-        .initEmptyAccount()
-        .accounts({
-          newRecipient: pg.wallet.publicKey,
           tokenMint: tokenMintPk,
-          owner: pg.wallet.publicKey
-        })
-        .transaction();
-
-      const callGetPanel = await pg.program.methods
-        .getPanel(new BN(17))
-        .accounts({
-          signerTokenAccount: signerATA,
-          signer: pg.wallet.publicKey,
-          recipient: pg.wallet.publicKey,
+          recipientToken: recipientTokenATA,
+          signerToken: signerTokenATA,
           tokenProgram: getTokenProgram()
         })
-        .transaction();
+        .transaction()
 
-
-      transaction.add(callInitTokenMint, callInitEmptyAccount, callGetPanel);
       transaction.recentBlockhash = (
         await pg.connection.getLatestBlockhash()
       ).blockhash;
       transaction.feePayer = pg.wallet.publicKey;
       transaction.sign(pg.wallet.keypair);
-      
-      // Send transaction
-      const signature = await pg.connection.sendRawTransaction(transaction.serialize(), {skipPreflight: true});
-      console.log(signature)
+      const signature = await pg.connection.sendRawTransaction(transaction.serialize(), { skipPreflight: true });
 
-      const panelAccount = await pg.program.account.panel.fetch(panelPk);
-      console.log("Area per unit:", panelAccount.apu);
-      console.log("Power:", panelAccount.power);
-      console.log("Price per unit:", panelAccount.ppu);
-      console.log("Units:", panelAccount.units);
-      console.log("Age:", panelAccount.age);
-    });
+      console.log(signature);
+    })
   });

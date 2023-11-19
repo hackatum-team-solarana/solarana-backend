@@ -22,10 +22,10 @@ class Panel(Account):
 
 
 @instruction
-def register_panel(owner: Signer, new_panel: Empty[Panel], panel_count: u64):
+def register_panel(owner: Signer, new_panel: Empty[Panel], random_str: str):
   panel = new_panel.init(
     payer = owner, 
-    seeds = ['panel', owner, panel_count]
+    seeds = ['panel', owner, random_str]
   )
 
 
@@ -41,10 +41,10 @@ def initialize_panel(panel: Panel, region: u8, areaPerUnit: f64, powerPerUnit: f
 
 
 @instruction
-def init_token_mint(signer: Signer, new_token_mint: Empty[TokenMint]):
+def init_token_mint(signer: Signer, new_token_mint: Empty[TokenMint], random_str: str):
   new_token_mint.init(
     payer = signer,
-    seeds = ['token-mint', signer],
+    seeds = ['token-mint', signer, random_str],
     decimals = 0,
     authority = signer
   )

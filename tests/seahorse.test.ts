@@ -3,6 +3,7 @@
 const parseSecretKey = (keyAsString: string) =>
   Uint8Array.from(keyAsString.split(",").map((v) => Number(v)));
 
+
 // from https://github.com/Wealthineer/buildspace-solana-intro-client/blob/main/src/index.ts
 const airdropSolIfNeeded = async (signer: web3.Keypair) => {
   const connection = new web3.Connection(web3.clusterApiUrl("devnet"));
@@ -31,6 +32,7 @@ const airdropSolIfNeeded = async (signer: web3.Keypair) => {
   }
 };
 
+
 const keypairs = [
   {
     publicKey: "4AbW9uj6GW5gUYHJK8CyjXQ52JWY9UWwgy16suSnmypi",
@@ -44,11 +46,14 @@ const keypairs = [
   },
 ];
 
+
 const getTokenProgram = () =>
   new web3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 
+
 const getATokenPK = () =>
   new web3.PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+
 
 function findAssociatedTokenAddress(
   walletAddress: web3.PublicKey,
@@ -64,10 +69,12 @@ function findAssociatedTokenAddress(
   )[0];
 }
 
+
 type InitDummyKeyParams = {
   publicKey: string;
   secretKey: string;
 };
+
 
 const initDummyKey = async ({ publicKey, secretKey }: InitDummyKeyParams) => {
   const keyPairFromSecret = web3.Keypair.fromSecretKey(
@@ -78,21 +85,26 @@ const initDummyKey = async ({ publicKey, secretKey }: InitDummyKeyParams) => {
   return new web3.PublicKey(publicKey);
 };
 
+
 const initAllDummyKeys = async () => {
   return Promise.all(keypairs.map(async (keypair) => initDummyKey(keypair)));
 };
 
+
 const PUB_KEYS: web3.PublicKey[] = await initAllDummyKeys();
 
 
+const randomString = () => (new BN(Math.random() * Math.pow(2, 32))).toString();
+
+
 const generatePanel = async () => {
-  const randomString = (new BN(Math.random() * Math.pow(2, 32))).toString();
+  const random = randomString();
 
   const [panelPk] = await web3.PublicKey.findProgramAddress(
     [
       Buffer.from("panel"),
       pg.wallet.publicKey.toBuffer(),
-      Buffer.from(randomString)
+      Buffer.from(random)
       // Buffer.from("1"),
       // Buffer.from(randomInt.toString()),
     ],
@@ -102,7 +114,7 @@ const generatePanel = async () => {
 
 
   await pg.program.methods
-      .registerPanel(randomString)
+      .registerPanel(random)
       .accounts({
         newPanel: panelPk,
         owner: pg.wallet.publicKey,
@@ -114,13 +126,38 @@ const generatePanel = async () => {
 }
 
 
+const generateMintToken = async () => {
+  const random = randomString();
+
+  const [mintTokenPk] = await web3.PublicKey.findProgramAddress(
+    [
+      Buffer.from("token-mint"),
+      pg.wallet.publicKey.toBuffer(),
+      Buffer.from(random),
+    ],
+    pg.PROGRAM_ID
+  );
+  console.log("mintTokenPk", mintTokenPk.toString());
+
+  await pg.program.methods
+    .initTokenMint(random)
+    .accounts({
+      newTokenMint: mintTokenPk,
+      signer: pg.wallet.publicKey,
+    })
+    .rpc();
+
+  return mintTokenPk;
+}
+
+
 describe("Panel", async () => {
   // Generate the fizzbuzz account public key from its seeds
-  const [tokenMintPk] = await web3.PublicKey.findProgramAddress(
+  /*const [tokenMintPk] = await web3.PublicKey.findProgramAddress(
     [Buffer.from("token-mint"), pg.wallet.publicKey.toBuffer()],
     pg.PROGRAM_ID
   );
-  console.log("tokenMintPk", tokenMintPk.toString());
+  console.log("tokenMintPk", tokenMintPk.toString());*/
 
   /*const randomInt: BN = new BN(Math.random() * Math.pow(2, 32));
   console.log("randomInt:", randomInt);
@@ -149,17 +186,8 @@ describe("Panel", async () => {
       age: new BN(5),
     };
 
-    // Send transaction
-    const recipientATA = web3.PublicKey.findProgramAddressSync(
-      [
-        pg.wallet.publicKey.toBuffer(),
-        tokenProgramPK.toBuffer(),
-        tokenMintPk.toBuffer(),
-      ],
-      getATokenPK()
-    )[0];
 
-    const transaction = new web3.Transaction();
+    // const transaction = new web3.Transaction();
 
     /*const callRegisterPanel = await pg.program.methods
       .registerPanel(randomInt.toString())
@@ -171,7 +199,7 @@ describe("Panel", async () => {
       .instruction();
     transaction.add(callRegisterPanel);*/
 
-    const callInitializePanel = await pg.program.methods
+    await pg.program.methods
       .initializePanel(
         panelDetails.region,
         panelDetails.apu,
@@ -182,27 +210,40 @@ describe("Panel", async () => {
       .accounts({
         panel: panelPk,
       })
-      .instruction();
+      .rpc();
 
-    const callInitTokenMint = await pg.program.methods
+
+    const mintTokenPk = await generateMintToken();
+
+    // Send transaction
+    const recipientATA = web3.PublicKey.findProgramAddressSync(
+      [
+        pg.wallet.publicKey.toBuffer(),
+        tokenProgramPK.toBuffer(),
+        mintTokenPk.toBuffer(),
+      ],
+      getATokenPK()
+    )[0];
+
+    /*const callInitTokenMint = await pg.program.methods
       .initTokenMint()
       .accounts({
         newTokenMint: tokenMintPk,
         signer: pg.wallet.publicKey,
       })
-      .instruction();
+      .instruction();*/
 
-    const callOwnerMintToken = await pg.program.methods
+    await pg.program.methods
       .ownerMintToken()
       .accounts({
         newRecipient: recipientATA,
         owner: pg.wallet.publicKey,
-        tokenMint: tokenMintPk,
+        tokenMint: mintTokenPk,
         tokenProgram: tokenProgramPK,
       })
       .instruction();
 
-    transaction.add(
+    /*transaction.add(
       // callRegisterPanel,
       callInitializePanel,
       callInitTokenMint,
@@ -219,7 +260,7 @@ describe("Panel", async () => {
       transaction.serialize(),
       { skipPreflight: true }
     );
-    console.log(signature);
+    console.log(signature);*/
 
     return panelPk;
   };

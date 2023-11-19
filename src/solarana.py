@@ -12,28 +12,30 @@ declare_id('6X6MoaaQDpcGDgtXzCwQgwzinS6tUoZdAHcu4kqhNvho')
 
 
 class Panel(Account):
-  apu: f64
-  power: f64
-  ppu: u64    # in cents
+  region: u8
+  areaPerUnit: f64
+  powerPerUnit: f64
+  pricePerUnit: u64    # in cents
   units: u64
   age: u64
   owner: Pubkey
 
 
 @instruction
-def register_panel(owner: Signer, new_panel: Empty[Panel]):
+def register_panel(owner: Signer, new_panel: Empty[Panel], panel_count: u64):
   panel = new_panel.init(
     payer = owner, 
-    seeds = ['panel', owner]
+    seeds = ['panel', owner, panel_count]
   )
 
 
 @instruction
-def initialize_panel(panel: Panel, apu: f64, power: f64, ppu: u64, age: u64):
-  panel.apu = apu
-  panel.power = power
-  panel.ppu = ppu
-  panel.units = 1000
+def initialize_panel(panel: Panel, region: u8, areaPerUnit: f64, powerPerUnit: f64, pricePerUnit: u64, age: u64):
+  panel.region = region
+  panel.areaPerUnit = areaPerUnit
+  panel.powerPerUnit = powerPerUnit
+  panel.pricePerUnit = pricePerUnit
+  panel.units = 100
   panel.age = age
   print(panel)
 
@@ -43,7 +45,7 @@ def init_token_mint(signer: Signer, new_token_mint: Empty[TokenMint]):
   new_token_mint.init(
     payer = signer,
     seeds = ['token-mint', signer],
-    decimals = 9,
+    decimals = 0,
     authority = signer
   )
 
@@ -90,7 +92,7 @@ def get_panel(signer: Signer, signer_token_account: TokenAccount, recipient: Tok
 
 
 @instruction
-def init_token_account(signer: Signer, signer_token: TokenAccount, token_mint: TokenMint, recipient_token: Empty[TokenAccount], amount: u64):
+def init_token_account(signer: Signer, signer_token: TokenAccount, token_mint: TokenMint, recipient_token: TokenAccount, amount: u64):
   # recipient_token = recipient_token.init(
   #   payer = signer,
   #   mint = token_mint,
